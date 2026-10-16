@@ -4,7 +4,6 @@ on: [push]
 
 jobs:
   build:
-<div>
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -15,15 +14,26 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install PlatformIO Core
-        run: pip install --upgrade platformio
+      - name: Install Arduino CLI
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
+          echo "$HOME/bin" >> $GITHUB_PATH
 
-      - name: Build PlatformIO Project
-        run: pio run
+      - name: Initialize Arduino CLI
+        run: |
+          arduino-cli config init --additional-urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32
 
-      - name: Upload Artifact
+      - name: Compile Sketch
+        run: |
+          # Proje içerisindeki .ino dosyasını bulup derler
+          arduino-cli compile --fqbn esp32:esp32:esp32s3:JTAGSelect=usb,CDCOnBoot=default,MSCDev=default,UploadMode=default ./
+
+      - name: Find and Upload Bin
         uses: actions/upload-artifact@v4
         with:
           name: firmware-bin
-          path: .pio/build/**/firmware.bin
-</div>
+          path: |
+            **/*.bin
+            **/*.hex
